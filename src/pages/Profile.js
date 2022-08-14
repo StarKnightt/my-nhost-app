@@ -1,23 +1,44 @@
 import styles from '../styles/pages/Profile.module.css';
-
+import {gql, useMutation} from '@apollo/client'
+import { toast } from 'react-hot-toast';
 import { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useOutletContext } from 'react-router-dom';
 import Input from '../components/Input';
 
+
+const UPDATE_USER_MUTATION = gql`
+  mutation ($id: uuid!, $displayName: String!, $metadata: jsonb) {
+    updateUser(pk_columns: { id: $id }, _set: { displayName: $displayName, metadata: $metadata }) {
+      id
+      displayName
+      metadata
+    }
+  }
+`
+
 const Profile = () => {
-  const { user } = useOutletContext();
+  const [mutateUser, { loading: updatingProfile }] = useMutation(UPDATE_USER_MUTATION)
 
-  const [firstName, setFirstName] = useState(user?.metadata?.firstName ?? '');
-  const [lastName, setLastName] = useState(user?.metadata?.lastName ?? '');
+  const updateUserProfile = async (e) => {
+    e.preventDefault()
 
-  const isFirstNameDirty = firstName !== user?.metadata?.firstName;
-  const isLastNameDirty = lastName !== user?.metadata?.lastName;
-  const isProfileFormDirty = isFirstNameDirty || isLastNameDirty;
-
-  const updateUserProfile = async e => {
-    e.preventDefault();
-  };
+    try {
+      await mutateUser({
+        variables: {
+          id: user.id,
+          displayName: `${firstName} ${lastName}`.trim(),
+          metadata: {
+            firstName,
+            lastName
+          }
+        }
+      })
+      toast.success('Updated successfully', { id: 'updateProfile' })
+    } catch (error) {
+      toast.error('Unable to update profile', { id: 'updateProfile' })
+    }
+  }
 
   return (
     <>
